@@ -1,0 +1,30 @@
+# Author: Mikael Vind Mikkelsen
+# Configuration aims to enforce consistent code style and quality based on my practical experience.
+
+[flake8]
+exclude = .git, __pycache__, venv*, .venv*, local_*, .pdm_build, dist
+max-complexity = 5
+max-line-length = 120
+per-file-ignores = ./tests/**:D103,D100,ANN201
+
+ignore = ANN101, ANN204, D105, DCO030
+
+# ANN101 (flake8-annotations): Missing type annotation for self in method
+# Ignored because type checkers infer `self` automatically.
+
+# ANN204 (flake8-annotations):  Missing return type annotation for special method
+# Ignored because type checkers infer return types for special methods such as __init__ and __str__.
+
+# D105: Missing docstring in magic method
+# Ignored because magic method behavior is standardized and usually self-explanatory from Python conventions.
+
+# DCO030 (flake8-docstrings-complete): Function/method with return statement must have a return section in the docstring
+# Ignored because return types are already enforced via annotations.
+
+# Plugin specific configurations:
+
+# flake8-import-order
+import-order-style = pycharm
+
+# flake8-bugbear
+extend-immutable-calls = Path

@@ -205,3 +205,12 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore .idea/ folder which contains project-specific settings for JetBrains IDEs like PyCharm.
+.idea/
+
+# Ignore local configuration files.
+local*.ini
+
+# Ignore temporary files in the temp_data directory.
+data_folder/*
