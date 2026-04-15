@@ -9,6 +9,9 @@ flake8_import_order==0.19.2
 # HTTP client library for API requests
 httpx
 
+# Data manipulation and analysis
+pandas
+
 # Database ORM and SQL toolkit
 sqlalchemy
 

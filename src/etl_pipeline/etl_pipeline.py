@@ -5,12 +5,14 @@ data extraction, transformation, and loading.
 """
 from abc import ABC, abstractmethod
 
-class ETLProcess(ABC):
+class ETLPipeline(ABC):
     """Abstract base class for ETL processes.
     """
 
-    @abstractmethod
+    # TODO: Implement initialization of a database connection and a logger in the constructor, so that all ETL processes can use them.
+
     @property
+    @abstractmethod
     def process_name(self) -> str:
         """
         Property that returns the name of the ETL process.

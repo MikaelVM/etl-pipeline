@@ -213,4 +213,4 @@ __marimo__/
 local*.ini
 
 # Ignore temporary files in the temp_data directory.
-data_folder/*
+data/*
