@@ -1,17 +1,25 @@
+"""This module provides a JSONHandler class with static methods for reading and writing JSON files."""
 import json
 from pathlib import Path
 from typing import Any
 
 
+# TODO: Change from class into just a module with functions, since there is no state to maintain and it would be more
+#  straightforward to use without needing to instantiate a class.
 class JSONHandler:
+    """A utility class for handling JSON data, providing static methods for reading and writing JSON files."""
+
     @staticmethod
-    def write_json(*, file_path: Path, data: dict[str, Any], makedir:bool = False) -> None:
-        """Saves a dictionary as a JSON file.
+    def write_json(*, file_path: Path, data: dict[str, Any], makedir: bool = False) -> None:
+        """Save a dictionary as a JSON file.
 
         Args:
             data (dict): The dictionary to be saved as JSON.
             file_path (Path): The path where the JSON file will be saved.
             makedir (bool): Whether to create the parent directory if it does not exist. Defaults to False.
+
+        Raises:
+            FileNotFoundError: If the parent directory does not exist and makedir is False.
         """
         if not file_path.parent.exists():
             if makedir:
@@ -24,7 +32,7 @@ class JSONHandler:
 
     @staticmethod
     def read_json(*, file_path: Path) -> dict[str, Any]:
-        """Loads a JSON file and returns its content as a dictionary.
+        """Load a JSON file and returns its content as a dictionary.
 
         Args:
             file_path (Path): The path to the JSON file to be loaded.

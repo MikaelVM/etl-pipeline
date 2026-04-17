@@ -1,4 +1,4 @@
 from .etl_pipeline import ETLPipeline
-from .dmi import StationFeatureCollection, ObservationFeatureCollection
+from .etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn
 
-__all__ = ['ETLPipeline', 'StationFeatureCollection', 'ObservationFeatureCollection']
+__all__ = ['ETLPipeline', 'DropColumns', 'RemoveDuplicateRows', 'RenameColumns', 'SplitColumn']

@@ -1,0 +1,28 @@
+# Persistent volumes for database and ETL data
+volumes:
+  db-data:
+  etl:
+
+services:
+  # Database service using PostgreSQL
+  database:
+    image: postgres:18
+    restart: always
+    container_name: database
+    environment:
+      - POSTGRES_USER=dbadmin
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=postgres
+    ports:
+        - "6543:5432" # Alternatively could use "5432" to randomly assign a port on the host machine
+    volumes:
+      - db-data:/var/lib/postgresql/18/data
+
+  # ETL service for data extraction, transformation, and loading
+  api:
+    platform: linux/amd64
+    depends_on:
+      - database
+    build:
+        context: ./
+        dockerfile: ./Dockerfile

@@ -29,6 +29,7 @@ class ETLPipeline(ABC):
         This could include initializing database connections and schemas, ensuring that necessary files or directories
         exist, or any other setup tasks required before the ETL process can begin.
         """
+        # TODO: Split this step into a separate step for each step of the ETL process (e.g., init_extract, init_transform, init_load) to allow for more granular setup and better error handling.
         pass
 
     @abstractmethod

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.git/
+data/
+tests/
+config/local_db_config.ini

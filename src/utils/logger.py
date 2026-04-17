@@ -1,6 +1,8 @@
+"""Utility module for setting up a logger to log messages to a file."""
 import logging
 
-def setup_logger(*, name: str, log_file: str, level=logging.INFO) -> logging.Logger:
+
+def setup_logger(*, name: str, log_file: str, level: int = logging.INFO) -> logging.Logger:
     """Set up a logger with the specified name, log file, and logging level.
 
     Args:
@@ -21,4 +23,3 @@ def setup_logger(*, name: str, log_file: str, level=logging.INFO) -> logging.Log
     logger.addHandler(handler)
 
     return logger
-

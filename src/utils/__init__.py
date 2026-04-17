@@ -1,5 +1,7 @@
-from .timer import timer
-from .logger import setup_logger
-from .definitions import PROJECT_ROOT_DIR, DATA_DIR, CONFIG_DIR
+"""Utility functions and constants for the project."""
 
-__all__ = ['timer', 'setup_logger', 'PROJECT_ROOT_DIR', 'DATA_DIR', 'CONFIG_DIR']
+from .definitions import CONFIG_DIR, DATA_DIR, PROJECT_ROOT_DIR
+from .logger import setup_logger
+from .timer import timer
+
+__all__ = ['timer', 'setup_logger', 'CONFIG_DIR', 'DATA_DIR', 'PROJECT_ROOT_DIR']

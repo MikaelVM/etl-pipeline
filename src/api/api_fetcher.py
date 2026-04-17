@@ -1,5 +1,8 @@
 import httpx
 
+# TODO: Consider removing the APIFetcher class as it currently only contains a single method and may not provide
+#  significant abstraction or benefits over directly using httpx.get() in the main code.
+#  If the class is retained, consider adding more functionality or methods to justify its existence and enhance its utility.
 class APIFetcher:
     def __init__(self, *, api_timeout: float = 10.0) -> None:
         self.api_timeout = api_timeout

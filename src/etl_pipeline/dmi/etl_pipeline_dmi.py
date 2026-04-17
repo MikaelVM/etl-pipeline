@@ -1,20 +1,23 @@
 """ETL pipeline implementation for fetching and processing meteorological data from the DMI API."""
 
-from pathlib import Path
-from typing import Any, Optional
-from datetime import datetime
 import calendar
 from concurrent.futures import ThreadPoolExecutor
 # TODO: Future Work - Ensure this function is the best choice for determining the number of available CPU cores across
 #  different platforms and environments.
+from datetime import datetime
 from multiprocessing import cpu_count
+from pathlib import Path
+from typing import Any, Optional
 
 import httpx
-from pydantic import BaseModel
 import pandas as pd
-from src.etl_pipeline import ETLPipeline, StationFeatureCollection, ObservationFeatureCollection
-from src.json import JSONHandler
-from src.utils import DATA_DIR
+from etl_pipeline import ETLPipeline
+from etl_pipeline.dmi import StationFeatureCollection, ObservationFeatureCollection
+from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn
+from json_handler import JSONHandler
+from pydantic import BaseModel
+from transformer import DataFrameTransformer
+from utils import DATA_DIR
 
 
 class ETLPipelineDMI(ETLPipeline):
@@ -43,6 +46,10 @@ class ETLPipelineDMI(ETLPipeline):
 
         Args:
             data_folder (Path): The path to the folder where data files will be stored.
+            from_date (datetime, optional): The starting date for fetching data from the DMI API. Defaults to None.
+            to_date (datetime, optional): The ending date for fetching data from the DMI API. Defaults to None.
+            stations (list[str], optional): A list of station IDs to fetch data for.
+             Defaults to None (meaning all stations).
         """
         super().__init__()
         self.json_handler = JSONHandler()
@@ -61,12 +68,17 @@ class ETLPipelineDMI(ETLPipeline):
         """Return the list of station IDs to fetch data for."""
         return self._stations
 
+    # FIXME: Too complex (7)
     @stations.setter
     def stations(self, station_ids: list[str]) -> None:
         """Set the list of station IDs to fetch data for.
 
         Args:
             station_ids (list[str]): A list of station IDs to fetch data for.
+
+        Raises:
+            ValueError: If station_ids is not a list of strings,
+             or if any station ID is not a numeric string of 5 digits.
         """
         if station_ids is None:
             self._stations = None
@@ -85,14 +97,16 @@ class ETLPipelineDMI(ETLPipeline):
 
         self._stations = station_ids
 
+    # FIXME: Too complex(6)
     def init(self) -> None:
         """
-        Initialization process of the DMI ETL pipeline.
+        Initialize resources and configurations needed for the ETL process.
 
         TODO: Finish writing documentation for this method once the implementation is complete.
         FIXME: Remove from abstract base class and split initialization steps into separate methods that are called
          in each section of the ETL process (e.g., init_extract, init_transform, init_load) to avoid unnecessary
          initialization of resources that are only needed for specific sections of the pipeline.
+
         """
         # Extract
         raw_folder = self.data_folder / 'raw'
@@ -123,7 +137,7 @@ class ETLPipelineDMI(ETLPipeline):
 
     def extract(self) -> None:
         """
-        Extraction process of the DMI ETL pipeline.
+        Extract process of the DMI ETL pipeline.
 
         This method is responsible for fetching data from the DMI API for both station information and observations.
         """
@@ -159,9 +173,11 @@ class ETLPipelineDMI(ETLPipeline):
         )
 
     def extract_observations(self) -> None:
-        """Fetch meteorological observation data from the DMI API and save the JSON response to a file."""
-        api_endpoint = 'https://opendataapi.dmi.dk/v2/metObs/collections/observation/items'
-        # TODO: Future Work - Allow user configuration of the number of worker threads to use for fetching data.
+        """Fetch meteorological observation data from the DMI API and save the JSON response to a file.
+
+        FIXME: To complex (7)
+        """
+        # TODO: Future Work - Allow a configuration with the number of worker threads to use for fetching data.
         available_cpu_cores = cpu_count() - 1  # Leave one core free to avoid overloading the system.
 
         # If no specific station IDs are provided, fetch data for all stations by reading from the station data file.
@@ -176,37 +192,46 @@ class ETLPipelineDMI(ETLPipeline):
             # Remove duplicates and sort station IDs.
             station_ids = list(set(feature['properties']['stationId'] for feature in station_json['features']))
             station_ids.sort()
+
         else:
-            station_ids = self.stations
+            for station_id in self.stations:
+                for year in range(self.from_date.year, self.to_date.year + 1):
+                    for month in range(
+                            self.from_date.month if year == self.from_date.year else 1,
+                            self.to_date.month + 1 if year == self.to_date.year else 13):
+                        print(f"Fetching data for station {station_id} for year {year}, month {month}...")
 
-        for station_id in station_ids:
-            for year in range(self.from_date.year, self.to_date.year + 1):
-                for month in range(
-                        self.from_date.month if year == self.from_date.year else 1,
-                        self.to_date.month + 1 if year == self.to_date.year else 13):
-                    print(f"Fetching data for station {station_id} for year {year}, month {month}...")
-
-                    with ThreadPoolExecutor(max_workers=available_cpu_cores) as executor:
-                        for day in range(
-                                1,
-                                (calendar.monthrange(year, month)[1] + 1) if
-                                (year != self.to_date.year or month != self.to_date.month)
-                                else (self.to_date.day + 1)
-                        ):
-                            executor.submit(
-                                self._fetch_observation,
-                                api_endpoint,
-                                station_id,
-                                datetime(year, month, day, 0, 0, 0),
-                                datetime(year, month, day, 23, 59, 59)
-                            )
+                        with ThreadPoolExecutor(max_workers=available_cpu_cores) as executor:
+                            for day in range(
+                                    1,
+                                    (calendar.monthrange(year, month)[1] + 1) if
+                                    (year != self.to_date.year or month != self.to_date.month)
+                                    else (self.to_date.day + 1)
+                            ):
+                                executor.submit(
+                                    self._fetch_observation,
+                                    station_id,
+                                    datetime(year, month, day, 0, 0, 0),
+                                    datetime(year, month, day, 23, 59, 59)
+                                )
 
 
-    def _fetch_observation(self, api_endpoint: str, station_id: str, from_time: datetime, to_time: datetime) -> None:
+    def _fetch_observation(self, station_id: str, from_time: datetime, to_time: datetime) -> None:
+        """Fetch observation data for a specific station and time range and save the JSON response to a file.
+
+        Args:
+            api_endpoint (str): The URL of the DMI API endpoint for fetching observation data.
+            station_id (str): The ID of the station to fetch data for.
+            from_time (datetime): The starting datetime for fetching data.
+            to_time (datetime): The ending datetime for fetching data.
+        """
+        api_endpoint = 'https://opendataapi.dmi.dk/v2/metObs/collections/observation/items'
+        limit = 100000  # Highest limit allowed by the DMI API, minimizing number of API requests.
         api_params = {
             'stationId': station_id,
             'datetime': self._construct_datetime_argument(from_time, to_time),
-            'limit': 100000 # Highest limit allowed by the DMI API, minimizing number of API requests.
+            'limit': limit,
+            'offset': 0
         }
 
         while True:
@@ -232,8 +257,7 @@ class ETLPipelineDMI(ETLPipeline):
                 makedir=True
             )
 
-            api_params['offset'] = api_params.get('offset', 0) + api_params['limit']
-
+            api_params['offset'] += limit
 
     @staticmethod
     def _construct_datetime_argument(
@@ -306,9 +330,51 @@ class ETLPipelineDMI(ETLPipeline):
 
         dmi_stations_dataframe = pd.json_normalize(station_json['features'])
 
-        pass
+        dmi_transformer = DataFrameTransformer(transformations=[
+            DropColumns(
+                columns_to_drop=['type', 'geometry.type']
+            ),
+            SplitColumn(
+                column_to_split='geometry.coordinates',
+                new_column_titles=['longitude', 'latitude']
+            ),
+            RenameColumns(
+                columns_to_rename={
+                'id': 'id_string',
+                'properties.stationId': 'station_id',
+                'properties.wmoStationId': 'wmo_station_id',
+                'properties.regionId': 'region_id',
+                'properties.name': 'name',
+                'properties.owner': 'owner',
+                'properties.country': 'country',
+                'properties.wmoCountryCode': 'wmo_county_code',
+                'properties.anemometerHeight': 'anemometer_height',
+                'properties.barometerHeight': 'barometer_height',
+                'properties.stationHeight': 'station_height',
+                'properties.operationFrom': 'operation_from',
+                'properties.parameterId': 'parameter_id',
+                'properties.created': 'created',
+                'properties.validFrom': 'valid_from',
+                'properties.validTo': 'valid_to',
+                'properties.operationTo': 'operation_to',
+                'properties.type': 'type',
+                'properties.updated': 'updated',
+                'properties.status': 'status'
+                }
+            ),
+            RemoveDuplicateRows()
+        ])
+
+        dmi_stations_dataframe = dmi_transformer.transform(dmi_stations_dataframe)
+
+        if not (self.data_folder / 'processed' / 'dmi_stations').exists():
+            (self.data_folder / 'processed' / 'dmi_stations').mkdir(parents=True)
+
+        dmi_stations_dataframe.to_csv(self.data_folder / 'processed' / 'dmi_stations' / 'all.csv', index=False)
+
 
     def transform_observations(self) -> None:
+
         pass
 
     def load(self) -> None:
@@ -319,7 +385,7 @@ if __name__ == "__main__":
     etl_process = ETLPipelineDMI(
         DATA_DIR,
         from_date=datetime(2025, 1, 1),
-        to_date=datetime(2025, 12, 31),
+        to_date=datetime(2025, 1, 1),
         stations=['04202', '04203', '04205', '04208']
     )
     etl_process.run()

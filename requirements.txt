@@ -7,13 +7,17 @@ flake8-docstrings-complete==1.4.1
 flake8_import_order==0.19.2
 
 # HTTP client library for API requests
-httpx
+httpx==0.28.1
 
 # Data manipulation and analysis
-pandas
+pandas==3.0.2
 
 # Database ORM and SQL toolkit
-sqlalchemy
+sqlalchemy==2.0.49
+psycopg2-binary==2.9.11
 
 # Data validation
-pydantic
+pydantic==2.13.0
+
+# Command line interface creation
+typer==0.24.1

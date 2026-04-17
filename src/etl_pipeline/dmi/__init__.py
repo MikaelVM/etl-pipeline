@@ -1,4 +1,4 @@
-from .models.dmi_station import StationFeatureCollection
-from .models.dmi_observation import ObservationFeatureCollection
+from .models import StationFeatureCollection, ObservationFeatureCollection
+from .etl_pipeline_dmi import ETLPipelineDMI
 
-__all__ = ["StationFeatureCollection", "ObservationFeatureCollection"]
+__all__ = ["StationFeatureCollection", "ObservationFeatureCollection", "ETLPipelineDMI"]
