@@ -10,7 +10,10 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-
+# TODO: Transformer could be made generic if it checked that all transformations in the list returns the expected type
+#  (e.g., DataFrame) that the next transformation in the list accepts as input.
+#  This would allow for more flexible transformations that can return different types (e.g., a Series or a dictionary)
+#  and be used in a wider variety of contexts.
 class DataFrameTransformer():
     """A class that applies a series of transformations to a DataFrame.
 

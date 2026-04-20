@@ -21,3 +21,9 @@ pydantic==2.13.0
 
 # Command line interface creation
 typer==0.24.1
+
+# API documentation generation and setup
+fastapi==0.136.0
+
+# Command Line Interface (CLI) tool for Python
+typer==0.24.1

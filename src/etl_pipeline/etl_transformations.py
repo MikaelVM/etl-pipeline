@@ -59,9 +59,9 @@ class RenameColumns(DataFrameTransformation):
 class SplitColumn(DataFrameTransformation):
     """A transformation that splits a column containing lists into multiple columns, one for each element in the list."""
 
-    def __init__(self, *, column_to_split: str, new_column_titles: list[str], drop_original_column: bool = True):
+    def __init__(self, *, column_to_split: str, new_column_headers: list[str], drop_original_column: bool = True):
         self.column_to_split = column_to_split
-        self.new_column_titles = new_column_titles
+        self.new_column_titles = new_column_headers
         self.drop_original_column = drop_original_column
 
     def transform(self, data_frame: pd.DataFrame) -> pd.DataFrame:

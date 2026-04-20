@@ -14,10 +14,9 @@ import pandas as pd
 from etl_pipeline import ETLPipeline
 from etl_pipeline.dmi import StationFeatureCollection, ObservationFeatureCollection
 from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn
-from json_handler import JSONHandler
 from pydantic import BaseModel
 from transformer import DataFrameTransformer
-from utils import DATA_DIR
+from utils import DATA_DIR, read_json, write_json
 
 
 class ETLPipelineDMI(ETLPipeline):
@@ -52,7 +51,6 @@ class ETLPipelineDMI(ETLPipeline):
              Defaults to None (meaning all stations).
         """
         super().__init__()
-        self.json_handler = JSONHandler()
         self.data_folder = data_folder
         self.from_date = from_date
         self.to_date = to_date
@@ -123,11 +121,7 @@ class ETLPipelineDMI(ETLPipeline):
             dmi_observation_folder.mkdir()
 
         # Transform
-        staging_folder = self.data_folder / 'staging'
         processed_folder = self.data_folder / 'processed'
-
-        if not staging_folder.exists():
-            staging_folder.mkdir()
 
         if not processed_folder.exists():
             processed_folder.mkdir()
@@ -167,7 +161,7 @@ class ETLPipelineDMI(ETLPipeline):
             params={'limit': 100000}  # Highest limit allowed by the DMI API.
         )
 
-        self.json_handler.write_json(
+        write_json(
             file_path=file_path,
             data=station_json
         )
@@ -187,7 +181,7 @@ class ETLPipelineDMI(ETLPipeline):
             if not dmi_station_file.exists():
                 raise FileNotFoundError("Station data file not found. Please provide a list of station IDs or ensure that the station data file exists.")
 
-            station_json = self.json_handler.read_json(file_path=dmi_station_file)
+            station_json = read_json(file_path=dmi_station_file)
 
             # Remove duplicates and sort station IDs.
             station_ids = list(set(feature['properties']['stationId'] for feature in station_json['features']))
@@ -251,7 +245,7 @@ class ETLPipelineDMI(ETLPipeline):
             if response_json['numberReturned'] == 0:
                 break
 
-            self.json_handler.write_json(
+            write_json(
                 file_path=file_path,
                 data=response_json,
                 makedir=True
@@ -326,7 +320,7 @@ class ETLPipelineDMI(ETLPipeline):
         self.transform_observations()
 
     def transform_stations(self) -> None:
-        station_json = self.json_handler.read_json(file_path=self.data_folder / 'raw' / 'dmi_stations' / 'all.json')
+        station_json = read_json(file_path=self.data_folder / 'raw' / 'dmi_stations' / 'all.json')
 
         dmi_stations_dataframe = pd.json_normalize(station_json['features'])
 
@@ -336,7 +330,7 @@ class ETLPipelineDMI(ETLPipeline):
             ),
             SplitColumn(
                 column_to_split='geometry.coordinates',
-                new_column_titles=['longitude', 'latitude']
+                new_column_headers=['longitude', 'latitude']
             ),
             RenameColumns(
                 columns_to_rename={
