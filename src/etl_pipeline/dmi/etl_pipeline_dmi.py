@@ -11,9 +11,11 @@ from typing import Any, Optional
 
 import httpx
 import pandas as pd
+
+from api.routers.dmi import observation
 from etl_pipeline import ETLPipeline
 from etl_pipeline.dmi import StationFeatureCollection, ObservationFeatureCollection
-from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn
+from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn, PrintDataFrameInfo
 from pydantic import BaseModel
 from transformer import DataFrameTransformer
 from utils import DATA_DIR, read_json, write_json
@@ -66,7 +68,6 @@ class ETLPipelineDMI(ETLPipeline):
         """Return the list of station IDs to fetch data for."""
         return self._stations
 
-    # FIXME: Too complex (7)
     @stations.setter
     def stations(self, station_ids: list[str]) -> None:
         """Set the list of station IDs to fetch data for.
@@ -95,18 +96,12 @@ class ETLPipelineDMI(ETLPipeline):
 
         self._stations = station_ids
 
-    # FIXME: Too complex(6)
-    def init(self) -> None:
+    def extract(self) -> None:
         """
-        Initialize resources and configurations needed for the ETL process.
+        Extract process of the DMI ETL pipeline.
 
-        TODO: Finish writing documentation for this method once the implementation is complete.
-        FIXME: Remove from abstract base class and split initialization steps into separate methods that are called
-         in each section of the ETL process (e.g., init_extract, init_transform, init_load) to avoid unnecessary
-         initialization of resources that are only needed for specific sections of the pipeline.
-
+        This method is responsible for fetching data from the DMI API for both station information and observations.
         """
-        # Extract
         raw_folder = self.data_folder / 'raw'
         dmi_station_folder = raw_folder / 'dmi_stations'
         dmi_observation_folder = raw_folder / 'dmi_observations'
@@ -120,21 +115,6 @@ class ETLPipelineDMI(ETLPipeline):
         if not dmi_observation_folder.exists():
             dmi_observation_folder.mkdir()
 
-        # Transform
-        processed_folder = self.data_folder / 'processed'
-
-        if not processed_folder.exists():
-            processed_folder.mkdir()
-
-        # Load
-        # TODO: Add database initialization and logging.
-
-    def extract(self) -> None:
-        """
-        Extract process of the DMI ETL pipeline.
-
-        This method is responsible for fetching data from the DMI API for both station information and observations.
-        """
         self.extract_stations()
 
         self.extract_observations()
@@ -316,6 +296,11 @@ class ETLPipelineDMI(ETLPipeline):
 
     def transform(self) -> None:
         """Transformation process of the DMI ETL pipeline."""
+        processed_folder = self.data_folder / 'processed'
+
+        if not processed_folder.exists():
+            processed_folder.mkdir()
+
         self.transform_stations()
         self.transform_observations()
 
@@ -324,9 +309,9 @@ class ETLPipelineDMI(ETLPipeline):
 
         dmi_stations_dataframe = pd.json_normalize(station_json['features'])
 
-        dmi_transformer = DataFrameTransformer(transformations=[
+        dmi_stations_transformer = DataFrameTransformer(transformations=[
             DropColumns(
-                columns_to_drop=['type', 'geometry.type']
+                columns_to_drop=['id', 'type', 'geometry.type']
             ),
             SplitColumn(
                 column_to_split='geometry.coordinates',
@@ -334,7 +319,6 @@ class ETLPipelineDMI(ETLPipeline):
             ),
             RenameColumns(
                 columns_to_rename={
-                'id': 'id_string',
                 'properties.stationId': 'station_id',
                 'properties.wmoStationId': 'wmo_station_id',
                 'properties.regionId': 'region_id',
@@ -359,7 +343,7 @@ class ETLPipelineDMI(ETLPipeline):
             RemoveDuplicateRows()
         ])
 
-        dmi_stations_dataframe = dmi_transformer.transform(dmi_stations_dataframe)
+        dmi_stations_dataframe = dmi_stations_transformer.transform(dmi_stations_dataframe)
 
         if not (self.data_folder / 'processed' / 'dmi_stations').exists():
             (self.data_folder / 'processed' / 'dmi_stations').mkdir(parents=True)
@@ -368,10 +352,50 @@ class ETLPipelineDMI(ETLPipeline):
 
 
     def transform_observations(self) -> None:
+        for file in (self.data_folder / 'raw' / 'dmi_observations').rglob('*.json'):
+            print(f"Transforming observation data from file: {file}")
+            self._transform_observation_file(file)
 
-        pass
+
+    def _transform_observation_file(self, file_path: Path) -> None:
+        target_folder = self.data_folder / 'processed' / 'dmi_observations' / file_path.parent.relative_to(self.data_folder / 'raw' / 'dmi_observations')
+
+        observation_dataframe = pd.json_normalize(read_json(file_path=file_path)['features'])
+
+        dmi_observations_transformer = DataFrameTransformer(transformations=[
+            DropColumns(
+                columns_to_drop=['id','type', 'geometry.type']
+            ),
+            SplitColumn(
+                column_to_split='geometry.coordinates',
+                new_column_headers=['longitude', 'latitude']
+            ),
+            RenameColumns(
+                columns_to_rename={
+                    'properties.parameterId': 'type',
+                    'properties.created': 'created',
+                    'properties.value': 'value',
+                    'properties.observed': 'observed',
+                    'properties.stationId': 'station_id',
+                }
+            ),
+            RemoveDuplicateRows(),
+        ])
+
+        observation_dataframe = dmi_observations_transformer.transform(observation_dataframe)
+
+        if not target_folder.exists():
+            target_folder.mkdir(parents=True)
+        observation_dataframe.to_csv(target_folder / file_path.with_suffix('.csv').name, index=False)
 
     def load(self) -> None:
+        self.load_stations()
+        self.load_stations()
+
+    def load_stations(self) -> None:
+        pass
+
+    def load_observations(self) -> None:
         pass
 
 
@@ -379,7 +403,7 @@ if __name__ == "__main__":
     etl_process = ETLPipelineDMI(
         DATA_DIR,
         from_date=datetime(2025, 1, 1),
-        to_date=datetime(2025, 1, 1),
-        stations=['04202', '04203', '04205', '04208']
+        to_date=datetime(2025, 1, 31),
+        stations=['04203']
     )
     etl_process.run()

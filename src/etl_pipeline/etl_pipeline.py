@@ -4,13 +4,13 @@ This class outlines the structure and methods that any ETL process should implem
 data extraction, transformation, and loading.
 """
 from abc import ABC, abstractmethod
+from pathlib import Path
+
 
 class ETLPipeline(ABC):
-    """Abstract base class for ETL processes.
+    """Abstract base class for ETL processes, outlining the structure and methods that any ETL process should implement.
+
     """
-
-    # TODO: Implement initialization of a database connection and a logger in the constructor, so that all ETL processes can use them.
-
     @property
     @abstractmethod
     def process_name(self) -> str:
@@ -19,17 +19,6 @@ class ETLPipeline(ABC):
 
         Used for logging and tracking purposes, to identify which ETL process is running or has completed.
         """
-        pass
-
-    @abstractmethod
-    def init(self) -> None:
-        """
-        Set up any necessary configurations or resources before starting the ETL process.
-
-        This could include initializing database connections and schemas, ensuring that necessary files or directories
-        exist, or any other setup tasks required before the ETL process can begin.
-        """
-        # TODO: Split this step into a separate step for each step of the ETL process (e.g., init_extract, init_transform, init_load) to allow for more granular setup and better error handling.
         pass
 
     @abstractmethod
@@ -62,8 +51,6 @@ class ETLPipeline(ABC):
 
     def run(self) -> None:
         """Execute the ETL process in the correct order: init, extract, transform, load."""
-        self.init()
         self.extract()
         self.transform()
         self.load()
-

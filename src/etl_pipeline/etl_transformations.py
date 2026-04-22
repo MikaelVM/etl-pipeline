@@ -21,6 +21,20 @@ class RemoveDuplicateRows(DataFrameTransformation):
 
         return data_frame
 
+class RemoveRowsWithValue(DataFrameTransformation):
+    """A transformation that removes rows from a DataFrame where a specified column has a specified value."""
+
+    def __init__(self, *, column_name: str, value_to_remove):
+        self.column_name = column_name
+        self.value_to_remove = value_to_remove
+
+    def transform(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        if self.column_name not in data_frame.columns:
+            raise ValueError(f"Column '{self.column_name}' not found in DataFrame.")
+
+        data_frame = data_frame[data_frame[self.column_name] != self.value_to_remove]
+        return data_frame
+
 
 class DropColumns(DataFrameTransformation):
     """A transformation that drops specified columns from a DataFrame.
@@ -73,4 +87,16 @@ class SplitColumn(DataFrameTransformation):
         if self.drop_original_column:
             data_frame.drop(columns=[self.column_to_split], inplace=True)
 
+        return data_frame
+
+class PrintDataFrameInfo(DataFrameTransformation):
+    """Prints the info of a DataFrame to the console for debugging purposes."""
+
+    def transform(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        print("DataFrame info :")
+        print(f"Number of rows: {data_frame.shape[0]}")
+        print(f"Number of columns: {data_frame.shape[1]}")
+        print("Column names and data types:")
+        print(data_frame.dtypes)
+        print("\n")
         return data_frame
