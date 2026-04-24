@@ -24,6 +24,12 @@ typer==0.24.1
 
 # API documentation generation and setup
 fastapi==0.136.0
+uvicorn==0.45.0
 
 # Command Line Interface (CLI) tool for Python
 typer==0.24.1
+
+# File downloading utility for fetching data from the web
+wget
+beautifulsoup4
+requests

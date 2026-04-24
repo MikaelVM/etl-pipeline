@@ -7,15 +7,16 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from multiprocessing import cpu_count
 from pathlib import Path
+from time import sleep
 from typing import Any, Optional
 
 import httpx
 import pandas as pd
 
-from api.routers.dmi import observation
+from database_handler import DatabaseHandler
 from etl_pipeline import ETLPipeline
 from etl_pipeline.dmi import StationFeatureCollection, ObservationFeatureCollection
-from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn, PrintDataFrameInfo
+from etl_pipeline.etl_transformations import DropColumns, RemoveDuplicateRows, RenameColumns, SplitColumn
 from pydantic import BaseModel
 from transformer import DataFrameTransformer
 from utils import DATA_DIR, read_json, write_json
@@ -36,8 +37,9 @@ class ETLPipelineDMI(ETLPipeline):
 
     def __init__(
             self,
-            data_folder: Path,
             *,
+            data_folder: Path,
+            configuration: Path | str,
             from_date: datetime = None,
             to_date: datetime = None,
             stations: list[str] = None
@@ -47,6 +49,7 @@ class ETLPipelineDMI(ETLPipeline):
 
         Args:
             data_folder (Path): The path to the folder where data files will be stored.
+            configuration (Path | str): The path to the configuration file for database connection or connection string.
             from_date (datetime, optional): The starting date for fetching data from the DMI API. Defaults to None.
             to_date (datetime, optional): The ending date for fetching data from the DMI API. Defaults to None.
             stations (list[str], optional): A list of station IDs to fetch data for.
@@ -54,9 +57,11 @@ class ETLPipelineDMI(ETLPipeline):
         """
         super().__init__()
         self.data_folder = data_folder
+        self.configuration = configuration
         self.from_date = from_date
         self.to_date = to_date
         self.stations = stations
+        self.database_handler = DatabaseHandler()
 
     @property
     def process_name(self) -> str:
@@ -278,6 +283,7 @@ class ETLPipelineDMI(ETLPipeline):
         Returns:
             dict: The JSON response from the API.
         """
+        print(f"Fetching data from API endpoint: {api_endpoint} with parameters: {params}...")
         response = httpx.get(
             url=api_endpoint,
             timeout=timeout,
@@ -389,10 +395,17 @@ class ETLPipelineDMI(ETLPipeline):
         observation_dataframe.to_csv(target_folder / file_path.with_suffix('.csv').name, index=False)
 
     def load(self) -> None:
+        self.database_handler.connect(self.configuration)
         self.load_stations()
-        self.load_stations()
+        self.load_observations()
 
     def load_stations(self) -> None:
+        for station_file in (self.data_folder / 'processed' / 'dmi_stations').glob('*.csv'):
+            
+
+            print(f"Loading station data from file: {station_file}")
+
+
         pass
 
     def load_observations(self) -> None:
@@ -400,6 +413,8 @@ class ETLPipelineDMI(ETLPipeline):
 
 
 if __name__ == "__main__":
+    sleep(10)
+
     etl_process = ETLPipelineDMI(
         DATA_DIR,
         from_date=datetime(2025, 1, 1),

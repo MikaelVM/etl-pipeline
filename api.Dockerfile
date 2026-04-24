@@ -1,3 +1,4 @@
+# Test
 FROM python:3.14-slim
 
 RUN apt-get update
@@ -10,6 +11,9 @@ COPY ./requirements.txt /app/requirements.txt
 
 RUN pip3 install -r requirements.txt
 
-COPY ./docker-test.py /app/docker-test.py
+COPY ./src /app/
+RUN mkdir /data
 
-CMD ["python3", "docker-test.py"]
+CMD ["python3", "main.py"]
+# CMD ["uvicorn", "./api/api:app", "--host", "0.0.0.0", "--port", "80"]
+

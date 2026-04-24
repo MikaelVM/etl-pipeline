@@ -1,7 +1,6 @@
 # Persistent volumes for database and ETL data
 volumes:
   db-data:
-  etl:
 
 services:
   # Database service using PostgreSQL
@@ -25,4 +24,4 @@ services:
       - database
     build:
         context: ./
-        dockerfile: ./Dockerfile
+        dockerfile: api.Dockerfile
