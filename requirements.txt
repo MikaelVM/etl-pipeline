@@ -19,9 +19,6 @@ psycopg2-binary==2.9.11
 # Data validation
 pydantic==2.13.0
 
-# Command line interface creation
-typer==0.24.1
-
 # API documentation generation and setup
 fastapi==0.136.0
 uvicorn==0.45.0
